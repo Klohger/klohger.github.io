@@ -1,7 +1,16 @@
+.not-selectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
 body {
-	background-color: black;
+	background-color: #0a0a0a;
 	color: white;
+	margin: 0;
 }
 
 .sans {
@@ -10,8 +19,13 @@ body {
 .imp {
 	font-family: Impact;
 }
-.header {
-	font-size: 2cm;
+#header {
+	padding: 0.78125vw;
+}
+
+#header tbody tr th {
+	padding: 0.78125vw;
+	outline: red 0.390625vw solid; 
 }
 
 .nm {
@@ -19,7 +33,7 @@ body {
 }
 
 #main-title {
-	
+	font-size: 10vw;
 	width: fit-content;
 	background: linear-gradient(-90deg, #ff0000,#ff8000,#ffff00,#80ff00,#00ff00,#00ff80, #00ffff, #0080ff,#0000ff, #8000ff,#ff00ff,#ff0080,#ff0000,#ff8000,#ffff00,#80ff00,#00ff00);
 	animation: gradient 1s linear infinite;
@@ -28,6 +42,7 @@ body {
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	text-transform: uppercase;
+	text-align: center;
 	margin: auto;
 }
 #main-title-two {
@@ -35,6 +50,7 @@ body {
 }
 #music-button {
 	color: red;
+	font-size: 1.5625vw;
 }
 
 @keyframes gradient {
