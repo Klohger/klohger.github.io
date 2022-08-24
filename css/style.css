@@ -14,6 +14,10 @@ body {
 	font-size: 2cm;
 }
 
+.nm {
+	margin: 0;
+}
+
 #main-title {
 	
 	width: fit-content;
