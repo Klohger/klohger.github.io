@@ -30,7 +30,7 @@ body {
 	margin: auto;
 }
 #main-title-two {
-	font-stretch: 50%;
+	font-size: 25vw;
 }
 
 @keyframes gradient {
