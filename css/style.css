@@ -16,16 +16,18 @@ body {
 .sans {
 	font-family: Comic Sans MS;
 }
-.imp {
+.impact {
 	font-family: Impact;
 }
 #header {
 	padding: 0.78125vw;
+	
 }
 
 #header tbody tr th {
 	padding: 0.78125vw;
-	outline: red 0.390625vw solid; 
+	outline: red 0.390625vw dotted;
+	font-weight: normal;	
 }
 
 .nm {
