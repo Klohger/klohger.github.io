@@ -1,0 +1,12 @@
+[package]
+name = "klohg-site"
+edition = "2021"
+authors = ["me"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+glam = "0.25.0"
+slab = "0.4.9"
+wasm-bindgen = "0.2.90"
