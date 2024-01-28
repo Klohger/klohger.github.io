@@ -325,138 +325,283 @@ impl ShaderProgramManager {
         })
     }
 }
+
+#[allow(non_camel_case_types)]
 #[repr(transparent)]
-struct Vec3<T>(v128, PhantomData<T>);
+#[derive(Clone, Copy)]
+struct i32x2(v128);
+#[allow(non_camel_case_types)]
 #[repr(transparent)]
-struct Vec2<T>(v128, PhantomData<T>);
+#[derive(Clone, Copy)]
+struct i32x3(v128);
+#[allow(non_camel_case_types)]
 #[repr(transparent)]
-struct Vec4<T>(v128, PhantomData<T>);
+#[derive(Clone, Copy)]
+struct i32x4(v128);
 
-enum UniformValue<'a> {
-    I32(&'a i32),
-    I32Array(&'a [i32]),
-    I32_2(&'a [i32; 2]),
-    I32_2Array(&'a [[i32; 2]]),
-    I32_3(&'a [i32; 3]),
-    I32_3Array(&'a [[i32; 3]]),
-    I32_4(&'a [i32; 4]),
-    I32_4Array(&'a [[i32; 4]]),
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct f32x2(v128);
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct f32x3(v128);
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct f32x4(v128);
 
-    F32(&'a f32),
-    F32Array(&'a [f32]),
-    F32_2(&'a [f32; 2]),
-    F32_2Array(&'a [[f32; 2]]),
-    F32_3(&'a [f32; 3]),
-    F32_3Array(&'a [[f32; 3]]),
-    F32_4(&'a [f32; 4]),
-    F32_4Array(&'a [[f32; 4]]),
-    Mat2(&'a [f32; 2 * 2]),
-    Mat3(&'a [f32; 3 * 3]),
-    Mat4(&'a [f32; 4 * 4]),
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct Mat2(v128);
+
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct Mat4([v128; 4]);
+
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+#[derive(Clone, Copy)]
+struct Quat(v128);
+
+#[derive(Clone, Copy)]
+struct Transform {
+    translation: f32x3,
+    rotation: Quat,
 }
 
-impl<'a> From<&'a i32> for UniformValue<'a> {
-    fn from(value: &'a i32) -> Self {
-        UniformValue::I32(value)
+#[repr(transparent)]
+struct I32Uniform<const N: usize>([i32; N]);
+
+impl From<i32> for I32Uniform<1> {
+    fn from(value: i32) -> I32Uniform<1> {
+        I32Uniform([value])
     }
 }
-impl<'a> From<&'a [i32]> for UniformValue<'a> {
-    fn from(value: &'a [i32]) -> Self {
-        UniformValue::I32Array(value)
-    }
-}
-impl<'a> From<&'a [i32; 2]> for UniformValue<'a> {
-    fn from(value: &'a [i32; 2]) -> Self {
-        UniformValue::I32_2(value)
-    }
-}
-impl<'a> From<&'a [[i32; 2]]> for UniformValue<'a> {
-    fn from(value: &'a [[i32; 2]]) -> Self {
-        UniformValue::I32_2Array(value)
-    }
-}
-impl<'a> From<&'a [i32; 3]> for UniformValue<'a> {
-    fn from(value: &'a [i32; 3]) -> Self {
-        UniformValue::I32_3(value)
-    }
-}
-impl<'a> From<&'a [[i32; 3]]> for UniformValue<'a> {
-    fn from(value: &'a [[i32; 3]]) -> Self {
-        UniformValue::I32_3Array(value)
-    }
-}
-impl<'a> From<&'a [i32; 4]> for UniformValue<'a> {
-    fn from(value: &'a [i32; 4]) -> Self {
-        UniformValue::I32_4(value)
-    }
-}
-impl<'a> From<&'a [[i32; 4]]> for UniformValue<'a> {
-    fn from(value: &'a [[i32; 4]]) -> Self {
-        UniformValue::I32_4Array(value)
+impl<const N: usize> From<[i32; N]> for I32Uniform<N> {
+    fn from(value: [i32; N]) -> I32Uniform<N> {
+        I32Uniform(value)
     }
 }
 
-impl<'a> From<&'a f32> for UniformValue<'a> {
-    fn from(value: &'a f32) -> Self {
-        UniformValue::F32(value)
-    }
-}
-impl<'a> From<&'a [f32]> for UniformValue<'a> {
-    fn from(value: &'a [f32]) -> Self {
-        UniformValue::F32Array(value)
-    }
-}
-impl<'a> From<&'a [f32; 2]> for UniformValue<'a> {
-    fn from(value: &'a [f32; 2]) -> Self {
-        UniformValue::F32_2(value)
-    }
-}
-impl<'a> From<&'a [[f32; 2]]> for UniformValue<'a> {
-    fn from(value: &'a [[f32; 2]]) -> Self {
-        UniformValue::F32_2Array(value)
-    }
-}
-impl<'a> From<&'a [f32; 3]> for UniformValue<'a> {
-    fn from(value: &'a [f32; 3]) -> Self {
-        UniformValue::F32_3(value)
-    }
-}
-impl<'a> From<&'a [[f32; 3]]> for UniformValue<'a> {
-    fn from(value: &'a [[f32; 3]]) -> Self {
-        UniformValue::F32_3Array(value)
-    }
-}
-impl<'a> From<&'a [f32; 4]> for UniformValue<'a> {
-    fn from(value: &'a [f32; 4]) -> Self {
-        UniformValue::F32_4(value)
-    }
-}
-impl<'a> From<&'a [[f32; 4]]> for UniformValue<'a> {
-    fn from(value: &'a [[f32; 4]]) -> Self {
-        UniformValue::F32_4Array(value)
-    }
-}
-/*
-impl<'a> From<&'a Vec4<f32>> for UniformValue<'a> {
-    fn from(value: &'a Vec4<f32>) -> Self {
-        UniformValue::F32_4(value)
-    }
-}
-impl<'a> From<&'a [[f32; 4]]> for UniformValue<'a> {
-    fn from(value: &'a [[f32; 4]]) -> Self {
-        UniformValue::F32_4Array(value)
-    }
-}
-*/
+#[repr(transparent)]
+struct I32x2Uniform<const N: usize>([[i32; 2]; N]);
 
-struct Uniform<'a> {
-    location: &'a WebGLUniformLocation,
-    value: UniformValue<'a>,
+impl From<[i32; 2]> for I32x2Uniform<1> {
+    fn from(value: [i32; 2]) -> I32x2Uniform<1> {
+        I32x2Uniform([value])
+    }
+}
+impl<const N: usize> From<[[i32; 2]; N]> for I32x2Uniform<N> {
+    fn from(value: [[i32; 2]; N]) -> I32x2Uniform<N> {
+        I32x2Uniform(value)
+    }
+}
+impl From<i32x2> for I32x2Uniform<1> {
+    fn from(value: i32x2) -> I32x2Uniform<1> {
+        I32x2Uniform([unsafe { *(&value as *const _ as *const [i32; 2]) }])
+    }
 }
 
-struct Material<'a, I: Iterator<Item = Uniform<'a>>> {
-    shader_program: usize,
-    uniforms: I,
+#[repr(transparent)]
+struct I32x3Uniform<const N: usize>([[i32; 3]; N]);
+
+impl From<[i32; 3]> for I32x3Uniform<1> {
+    fn from(value: [i32; 3]) -> I32x3Uniform<1> {
+        I32x3Uniform([value])
+    }
+}
+impl<const N: usize> From<[[i32; 3]; N]> for I32x3Uniform<N> {
+    fn from(value: [[i32; 3]; N]) -> I32x3Uniform<N> {
+        I32x3Uniform(value)
+    }
+}
+impl From<i32x3> for I32x3Uniform<1> {
+    fn from(value: i32x3) -> I32x3Uniform<1> {
+        I32x3Uniform([unsafe { *(&value as *const _ as *const [i32; 3]) }])
+    }
+}
+
+#[repr(transparent)]
+struct I32x4Uniform<const N: usize>([[i32; 4]; N]);
+
+impl From<[i32; 4]> for I32x4Uniform<1> {
+    fn from(value: [i32; 4]) -> I32x4Uniform<1> {
+        I32x4Uniform([value])
+    }
+}
+impl<const N: usize> From<[[i32; 4]; N]> for I32x4Uniform<N> {
+    fn from(value: [[i32; 4]; N]) -> I32x4Uniform<N> {
+        I32x4Uniform(value)
+    }
+}
+impl From<i32x2> for I32x4Uniform<1> {
+    fn from(value: i32x2) -> I32x4Uniform<1> {
+        I32x4Uniform([unsafe { mem::transmute(value) }])
+    }
+}
+impl<const N: usize> From<[i32x2; N]> for I32x4Uniform<N> {
+    fn from(value: [i32x2; N]) -> I32x4Uniform<N> {
+        I32x4Uniform(unsafe { mem::transmute(value) })
+    }
+}
+impl From<i32x3> for I32x4Uniform<1> {
+    fn from(value: i32x3) -> I32x4Uniform<1> {
+        I32x4Uniform([unsafe { mem::transmute(value) }])
+    }
+}
+impl<const N: usize> From<[i32x3; N]> for I32x4Uniform<N> {
+    fn from(value: [i32x3; N]) -> I32Uniform<1> {
+        I32x4Uniform(unsafe { mem::transmute(value) })
+    }
+}
+impl From<i32x4> for I32x4Uniform<1> {
+    fn from(value: i32x4) -> I32Uniform<1> {
+        I32x4Uniform([unsafe { mem::transmute(value) }])
+    }
+}
+impl<const N: usize> From<[i32x4; N]> for I32x4Uniform<N> {
+    fn from(value: [i32x4; N]) -> I32Uniform<1> {
+        I32x4Uniform(unsafe { mem::transmute(value) })
+    }
+}
+
+#[repr(transparent)]
+struct F32Uniform<const N: usize>([f32; N]);
+
+impl From<f32> for F32Uniform<1> {
+    fn from(value: f32) -> I32Uniform<1> {
+        F32Uniform([value])
+    }
+}
+impl<const N: usize> From<[f32; N]> for F32Uniform<N> {
+    fn from(value: [f32; N]) -> I32Uniform<1> {
+        F32Uniform(value)
+    }
+}
+
+#[repr(transparent)]
+struct F32x2Uniform<const N: usize>([[f32; 2]; N]);
+
+impl From<[f32; 2]> for F32x2Uniform<1> {
+    fn from(value: [f32; 2]) -> I32Uniform<1> {
+        F32x2Uniform([value])
+    }
+}
+impl<const N: usize> From<[[f32; 2]; N]> for F32x2Uniform<N> {
+    fn from(value: [[f32; 2]; N]) -> I32Uniform<1> {
+        F32x2Uniform(value)
+    }
+}
+impl From<f32x2> for F32x2Uniform<1> {
+    fn from(value: f32x2) -> I32Uniform<1> {
+        F32x2Uniform([unsafe { *(&value as *const _ as *const [f32; 2]) }])
+    }
+}
+
+#[repr(transparent)]
+struct F32x3Uniform<const N: usize>([[f32; 3]; N]);
+
+impl From<[f32; 3]> for F32x3Uniform<1> {
+    fn from(value: [f32; 3]) -> I32Uniform<1> {
+        F32x3Uniform([value])
+    }
+}
+impl<const N: usize> From<[[f32; 3]; N]> for F32x3Uniform<N> {
+    fn from(value: [[f32; 3]; N]) -> I32Uniform<1> {
+        F32x3Uniform(value)
+    }
+}
+impl From<f32x3> for F32x3Uniform<1> {
+    fn from(value: f32x3) -> I32Uniform<1> {
+        F32x3Uniform([unsafe { *(&value as *const _ as *const [f32; 3]) }])
+    }
+}
+
+#[repr(transparent)]
+struct F32x4Uniform<const N: usize>([[f32; 4]; N]);
+
+impl From<[f32; 4]> for F32x4Uniform<1> {
+    fn from(value: [f32; 4]) -> I32Uniform<1> {
+        F32x4Uniform([value])
+    }
+}
+impl<const N: usize> From<[[f32; 4]; N]> for F32x4Uniform<N> {
+    fn from(value: [[f32; 4]; N]) -> I32Uniform<1> {
+        F32x4Uniform(value)
+    }
+}
+impl From<f32x2> for F32x4Uniform<1> {
+    fn from(value: f32x2) -> I32Uniform<1> {
+        F32x4Uniform([unsafe { mem::transmute(value) }])
+    }
+}
+impl<const N: usize> From<[f32x2; N]> for F32x4Uniform<N> {
+    fn from(value: [f32x2; N]) -> I32Uniform<1> {
+        F32x4Uniform(unsafe { mem::transmute(value) })
+    }
+}
+impl From<f32x3> for F32x4Uniform<1> {
+    fn from(value: f32x3) -> I32Uniform<1> {
+        F32x4Uniform([unsafe { mem::transmute(value) }])
+    }
+}
+impl<const N: usize> From<[f32x3; N]> for F32x4Uniform<N> {
+    fn from(value: [f32x3; N]) -> I32Uniform<1> {
+        F32x4Uniform(unsafe { mem::transmute(value) })
+    }
+}
+impl From<f32x4> for F32x4Uniform<1> {
+    fn from(value: f32x4) -> I32Uniform<1> {
+        F32x4Uniform([unsafe { mem::transmute(value) }])
+    }
+}
+impl<const N: usize> From<[f32x4; N]> for F32x4Uniform<N> {
+    fn from(value: [f32x4; N]) -> I32Uniform<1> {
+        F32x4Uniform(unsafe { mem::transmute(value) })
+    }
+}
+
+trait Material {
+    fn get_uniforms<
+        const I_N: usize,
+        I: Into<I32Uniform<I_N>>,
+        I_Fn: Fn(I),
+        const Ix2_N: usize,
+        Ix2: Into<I32x2Uniform<Ix2_N>>,
+        Ix2_Fn: Fn(Ix2),
+        const Ix3_N: usize,
+        Ix3: Into<I32x3Uniform<Ix3_N>>,
+        Ix3_Fn: Fn(Ix3),
+        const Ix4_N: usize,
+        Ix4: Into<I32x4Uniform<Ix4_N>>,
+        Ix4_Fn: Fn(Ix4),
+        const F_N: usize,
+        F: Into<F32Uniform<F_N>>,
+        F_Fn: Fn(F),
+        const Fx2_N: usize,
+        Fx2: Into<F32x2Uniform<Fx2_N>>,
+        Fx2_Fn: Fn(Fx2),
+        const Fx3_N: usize,
+        Fx3: Into<F32x3Uniform<Fx3_N>>,
+        Fx3_Fn: Fn(Fx3),
+        const Fx4_N: usize,
+        Fx4: Into<F32x4Uniform<Fx4_N>>,
+        Fx4_Fn: Fn(Fx4),
+    >(
+        &self,
+        i32: I_Fn,
+        i32x2: Ix2_Fn,
+        i32x3: Ix3_Fn,
+        i32x4: Ix4_Fn,
+        f32: F_Fn,
+        f32x2: Fx2_Fn,
+        f32x3: Fx3_Fn,
+        f32x4: Fx4_Fn,
+    );
 }
 
 #[wasm_bindgen(start)]

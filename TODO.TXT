@@ -1,0 +1,15 @@
+* Implement vector classes
+  * constructor
+  * arithmetic
+  * scalar arithmetic
+
+* Fully implement uniforms
+  * vector class interopability
+  * Uniform types
+  X Material Trait
+  * Camera
+  * Transform
+
+* Implement Audio
+
+* design "game"
