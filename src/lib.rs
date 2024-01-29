@@ -1,12 +1,11 @@
-use core::{arch::wasm32, slice};
-
+use core::arch::wasm32;
 use shader::{Shader, ShaderProgram};
 use slab::Slab;
 use std::{
-    arch::wasm32::{i32x4_extract_lane, v128},
-    cell::{Ref, RefCell},
-    marker::PhantomData,
-    mem, panic,
+    arch::wasm32::v128,
+    mem,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+    panic,
 };
 use wasm_bindgen::{closure::Closure, prelude::wasm_bindgen, JsValue};
 mod shader;
@@ -136,9 +135,6 @@ extern "C" {
 const VERTEX_SHADER_SOURCE: &str = include_str!("test.vert");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("test.frag");
 thread_local! {
-    static REFRESH_CANVAS_SIZE : Closure<dyn Fn()> = Closure::new(|| {
-        refresh_canvas_size()
-    });
     static CANVAS : HTMLCanvasElement =
         HTMLCanvasElement::from(DOCUMENT.query_selector("canvas").expect("failed to access canvas element").obj);
     static GL : WebGLRenderingContext = CANVAS.with(|canvas| {
@@ -327,45 +323,224 @@ impl ShaderProgramManager {
 }
 
 #[allow(non_camel_case_types)]
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-struct i32x2(v128);
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-struct i32x3(v128);
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-struct i32x4(v128);
-
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
+#[repr(C, packed(4))]
 #[derive(Clone, Copy)]
 struct f32x2(v128);
 #[allow(non_camel_case_types)]
-#[repr(transparent)]
+#[repr(C, packed(4))]
 #[derive(Clone, Copy)]
 struct f32x3(v128);
 #[allow(non_camel_case_types)]
-#[repr(transparent)]
+#[repr(C, packed(4))]
 #[derive(Clone, Copy)]
 struct f32x4(v128);
 
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-struct Mat2(v128);
+impl DivAssign for f32x4 {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = self.div(rhs)
+    }
+}
+
+impl Div for f32x4 {
+    type Output = f32x4;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        f32x4(wasm32::f32x4_div(self.0, rhs.0))
+    }
+}
+
+impl MulAssign for f32x4 {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = self.mul(rhs)
+    }
+}
+
+impl Mul for f32x4 {
+    type Output = f32x4;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        f32x4(wasm32::f32x4_mul(self.0, rhs.0))
+    }
+}
+
+impl SubAssign for f32x4 {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = self.sub(rhs)
+    }
+}
+
+impl Sub for f32x4 {
+    type Output = f32x4;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        f32x4(wasm32::f32x4_sub(self.0, rhs.0))
+    }
+}
+
+impl AddAssign for f32x4 {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.add(rhs)
+    }
+}
+
+impl Add for f32x4 {
+    type Output = f32x4;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        f32x4(wasm32::f32x4_add(self.0, rhs.0))
+    }
+}
+impl f32x4 {
+    pub fn floor(&self) -> Self {
+        Self(wasm32::f32x4_floor(self.0))
+    }
+    pub fn ceil(&self) -> Self {
+        Self(wasm32::f32x4_ceil(self.0))
+    }
+    pub fn abs(&self) -> Self {
+        Self(wasm32::f32x4_abs(self.0))
+    }
+    pub const fn new(a: [f32; 4]) -> f32x4 {
+        let [a0, a1, a2, a3] = a;
+        f32x4(wasm32::f32x4(a0, a1, a2, a3))
+    }
+    pub fn splat(f32: f32) -> f32x4 {
+        f32x4(wasm32::f32x4_splat(f32))
+    }
+    pub fn f32x3_f32(a: f32x3, b: f32) -> f32x4 {
+        let mut a: f32x4 = unsafe { mem::transmute(a) };
+        *a.w_mut() = b;
+        a
+    }
+    fn x(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[0]
+    }
+    fn x_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[0]
+    }
+    fn y(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[1]
+    }
+    fn y_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[1]
+    }
+    fn z(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[2]
+    }
+    fn z_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[2]
+    }
+    fn w(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[3]
+    }
+    fn w_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[3]
+    }
+}
 
 #[allow(non_camel_case_types)]
-#[repr(transparent)]
+#[repr(C, packed(4))]
 #[derive(Clone, Copy)]
-struct Mat4([v128; 4]);
+struct Mat2(f32x4);
 
 #[allow(non_camel_case_types)]
-#[repr(transparent)]
+#[repr(C, packed(4))]
 #[derive(Clone, Copy)]
-struct Quat(v128);
+struct Mat4([f32x4; 4]);
+
+impl Mat4 {
+    pub fn quat_to_axes(rotation: Quat) -> (f32x4, f32x4, f32x4) {
+        let rotation2 = rotation.0 + rotation.0;
+
+        let [x, y, z, w] = rotation.as_ref();
+
+        let x_rotation = f32x4::splat(*x) * rotation2;
+        let y_rotation = f32x4::splat(*y) * rotation2;
+        let zz = z * rotation2.z();
+        let w_rotation = f32x4::splat(*w) * rotation2;
+
+        let x_axis = f32x4::new([
+            1.0 - (y_rotation.y() + zz),
+            x_rotation.y() + w_rotation.z(),
+            x_rotation.z() - w_rotation.y(),
+            0.0,
+        ]);
+        let y_axis = f32x4::new([
+            x_rotation.y() - w_rotation.z(),
+            1.0 - (x_rotation.x() + zz),
+            (y_rotation.z() + w_rotation.x()),
+            0.0,
+        ]);
+        let z_axis = f32x4::new([
+            x_rotation.z() + w_rotation.y(),
+            y_rotation.z() - w_rotation.x(),
+            1.0 - (x_rotation.x() + y_rotation.y()),
+            0.0,
+        ]);
+        (x_axis, y_axis, z_axis)
+    }
+    pub fn from_rotation_translation(rotation: Quat, translation: f32x3) -> Mat4 {
+        let (x_axis, y_axis, z_axis) = Self::quat_to_axes(rotation);
+        Self::from_cols(x_axis, y_axis, z_axis, f32x4::f32x3_f32(translation, 1.0))
+    }
+    pub const fn from_cols(x_axis: f32x4, y_axis: f32x4, z_axis: f32x4, w_axis: f32x4) -> Self {
+        Self([x_axis, y_axis, z_axis, w_axis])
+    }
+}
+
+#[allow(non_camel_case_types)]
+#[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+struct Quat(f32x4);
+
+impl AsRef<[f32; 4]> for Quat {
+    fn as_ref(&self) -> &[f32; 4] {
+        unsafe { mem::transmute(self) }
+    }
+}
+
+impl Quat {
+    fn x(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[0]
+    }
+    fn x_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[0]
+    }
+    fn y(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[1]
+    }
+    fn y_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[1]
+    }
+    fn z(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[2]
+    }
+    fn z_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[2]
+    }
+    fn w(&self) -> &f32 {
+        let a: &[f32; 4] = unsafe { mem::transmute(self) };
+        &a[3]
+    }
+    fn w_mut(&mut self) -> &mut f32 {
+        let a: &mut [f32; 4] = unsafe { mem::transmute(self) };
+        &mut a[3]
+    }
+}
 
 #[derive(Clone, Copy)]
 struct Transform {
@@ -373,243 +548,56 @@ struct Transform {
     rotation: Quat,
 }
 
-#[repr(transparent)]
-struct I32Uniform<const N: usize>([i32; N]);
-
-impl From<i32> for I32Uniform<1> {
-    fn from(value: i32) -> I32Uniform<1> {
-        I32Uniform([value])
-    }
-}
-impl<const N: usize> From<[i32; N]> for I32Uniform<N> {
-    fn from(value: [i32; N]) -> I32Uniform<N> {
-        I32Uniform(value)
+impl Transform {
+    pub fn matrix(&self) -> Mat4 {
+        Mat4::from_rotation_translation(self.rotation, self.translation)
     }
 }
 
-#[repr(transparent)]
-struct I32x2Uniform<const N: usize>([[i32; 2]; N]);
+mod uniform;
 
-impl From<[i32; 2]> for I32x2Uniform<1> {
-    fn from(value: [i32; 2]) -> I32x2Uniform<1> {
-        I32x2Uniform([value])
-    }
-}
-impl<const N: usize> From<[[i32; 2]; N]> for I32x2Uniform<N> {
-    fn from(value: [[i32; 2]; N]) -> I32x2Uniform<N> {
-        I32x2Uniform(value)
-    }
-}
-impl From<i32x2> for I32x2Uniform<1> {
-    fn from(value: i32x2) -> I32x2Uniform<1> {
-        I32x2Uniform([unsafe { *(&value as *const _ as *const [i32; 2]) }])
-    }
-}
-
-#[repr(transparent)]
-struct I32x3Uniform<const N: usize>([[i32; 3]; N]);
-
-impl From<[i32; 3]> for I32x3Uniform<1> {
-    fn from(value: [i32; 3]) -> I32x3Uniform<1> {
-        I32x3Uniform([value])
-    }
-}
-impl<const N: usize> From<[[i32; 3]; N]> for I32x3Uniform<N> {
-    fn from(value: [[i32; 3]; N]) -> I32x3Uniform<N> {
-        I32x3Uniform(value)
-    }
-}
-impl From<i32x3> for I32x3Uniform<1> {
-    fn from(value: i32x3) -> I32x3Uniform<1> {
-        I32x3Uniform([unsafe { *(&value as *const _ as *const [i32; 3]) }])
-    }
-}
-
-#[repr(transparent)]
-struct I32x4Uniform<const N: usize>([[i32; 4]; N]);
-
-impl From<[i32; 4]> for I32x4Uniform<1> {
-    fn from(value: [i32; 4]) -> I32x4Uniform<1> {
-        I32x4Uniform([value])
-    }
-}
-impl<const N: usize> From<[[i32; 4]; N]> for I32x4Uniform<N> {
-    fn from(value: [[i32; 4]; N]) -> I32x4Uniform<N> {
-        I32x4Uniform(value)
-    }
-}
-impl From<i32x2> for I32x4Uniform<1> {
-    fn from(value: i32x2) -> I32x4Uniform<1> {
-        I32x4Uniform([unsafe { mem::transmute(value) }])
-    }
-}
-impl<const N: usize> From<[i32x2; N]> for I32x4Uniform<N> {
-    fn from(value: [i32x2; N]) -> I32x4Uniform<N> {
-        I32x4Uniform(unsafe { mem::transmute(value) })
-    }
-}
-impl From<i32x3> for I32x4Uniform<1> {
-    fn from(value: i32x3) -> I32x4Uniform<1> {
-        I32x4Uniform([unsafe { mem::transmute(value) }])
-    }
-}
-impl<const N: usize> From<[i32x3; N]> for I32x4Uniform<N> {
-    fn from(value: [i32x3; N]) -> I32Uniform<1> {
-        I32x4Uniform(unsafe { mem::transmute(value) })
-    }
-}
-impl From<i32x4> for I32x4Uniform<1> {
-    fn from(value: i32x4) -> I32Uniform<1> {
-        I32x4Uniform([unsafe { mem::transmute(value) }])
-    }
-}
-impl<const N: usize> From<[i32x4; N]> for I32x4Uniform<N> {
-    fn from(value: [i32x4; N]) -> I32Uniform<1> {
-        I32x4Uniform(unsafe { mem::transmute(value) })
-    }
-}
-
-#[repr(transparent)]
-struct F32Uniform<const N: usize>([f32; N]);
-
-impl From<f32> for F32Uniform<1> {
-    fn from(value: f32) -> I32Uniform<1> {
-        F32Uniform([value])
-    }
-}
-impl<const N: usize> From<[f32; N]> for F32Uniform<N> {
-    fn from(value: [f32; N]) -> I32Uniform<1> {
-        F32Uniform(value)
-    }
-}
-
-#[repr(transparent)]
-struct F32x2Uniform<const N: usize>([[f32; 2]; N]);
-
-impl From<[f32; 2]> for F32x2Uniform<1> {
-    fn from(value: [f32; 2]) -> I32Uniform<1> {
-        F32x2Uniform([value])
-    }
-}
-impl<const N: usize> From<[[f32; 2]; N]> for F32x2Uniform<N> {
-    fn from(value: [[f32; 2]; N]) -> I32Uniform<1> {
-        F32x2Uniform(value)
-    }
-}
-impl From<f32x2> for F32x2Uniform<1> {
-    fn from(value: f32x2) -> I32Uniform<1> {
-        F32x2Uniform([unsafe { *(&value as *const _ as *const [f32; 2]) }])
-    }
-}
-
-#[repr(transparent)]
-struct F32x3Uniform<const N: usize>([[f32; 3]; N]);
-
-impl From<[f32; 3]> for F32x3Uniform<1> {
-    fn from(value: [f32; 3]) -> I32Uniform<1> {
-        F32x3Uniform([value])
-    }
-}
-impl<const N: usize> From<[[f32; 3]; N]> for F32x3Uniform<N> {
-    fn from(value: [[f32; 3]; N]) -> I32Uniform<1> {
-        F32x3Uniform(value)
-    }
-}
-impl From<f32x3> for F32x3Uniform<1> {
-    fn from(value: f32x3) -> I32Uniform<1> {
-        F32x3Uniform([unsafe { *(&value as *const _ as *const [f32; 3]) }])
-    }
-}
-
-#[repr(transparent)]
-struct F32x4Uniform<const N: usize>([[f32; 4]; N]);
-
-impl From<[f32; 4]> for F32x4Uniform<1> {
-    fn from(value: [f32; 4]) -> I32Uniform<1> {
-        F32x4Uniform([value])
-    }
-}
-impl<const N: usize> From<[[f32; 4]; N]> for F32x4Uniform<N> {
-    fn from(value: [[f32; 4]; N]) -> I32Uniform<1> {
-        F32x4Uniform(value)
-    }
-}
-impl From<f32x2> for F32x4Uniform<1> {
-    fn from(value: f32x2) -> I32Uniform<1> {
-        F32x4Uniform([unsafe { mem::transmute(value) }])
-    }
-}
-impl<const N: usize> From<[f32x2; N]> for F32x4Uniform<N> {
-    fn from(value: [f32x2; N]) -> I32Uniform<1> {
-        F32x4Uniform(unsafe { mem::transmute(value) })
-    }
-}
-impl From<f32x3> for F32x4Uniform<1> {
-    fn from(value: f32x3) -> I32Uniform<1> {
-        F32x4Uniform([unsafe { mem::transmute(value) }])
-    }
-}
-impl<const N: usize> From<[f32x3; N]> for F32x4Uniform<N> {
-    fn from(value: [f32x3; N]) -> I32Uniform<1> {
-        F32x4Uniform(unsafe { mem::transmute(value) })
-    }
-}
-impl From<f32x4> for F32x4Uniform<1> {
-    fn from(value: f32x4) -> I32Uniform<1> {
-        F32x4Uniform([unsafe { mem::transmute(value) }])
-    }
-}
-impl<const N: usize> From<[f32x4; N]> for F32x4Uniform<N> {
-    fn from(value: [f32x4; N]) -> I32Uniform<1> {
-        F32x4Uniform(unsafe { mem::transmute(value) })
-    }
+struct Camera {
+    transform: Transform,
+    projection: Mat4,
 }
 
 trait Material {
     fn get_uniforms<
-        const I_N: usize,
-        I: Into<I32Uniform<I_N>>,
-        I_Fn: Fn(I),
-        const Ix2_N: usize,
-        Ix2: Into<I32x2Uniform<Ix2_N>>,
-        Ix2_Fn: Fn(Ix2),
-        const Ix3_N: usize,
-        Ix3: Into<I32x3Uniform<Ix3_N>>,
-        Ix3_Fn: Fn(Ix3),
-        const Ix4_N: usize,
-        Ix4: Into<I32x4Uniform<Ix4_N>>,
-        Ix4_Fn: Fn(Ix4),
-        const F_N: usize,
-        F: Into<F32Uniform<F_N>>,
-        F_Fn: Fn(F),
-        const Fx2_N: usize,
-        Fx2: Into<F32x2Uniform<Fx2_N>>,
-        Fx2_Fn: Fn(Fx2),
-        const Fx3_N: usize,
-        Fx3: Into<F32x3Uniform<Fx3_N>>,
-        Fx3_Fn: Fn(Fx3),
-        const Fx4_N: usize,
-        Fx4: Into<F32x4Uniform<Fx4_N>>,
-        Fx4_Fn: Fn(Fx4),
+        const I32_N: usize,
+        I32: AsRef<uniform::I32Uniform<I32_N>>,
+        I32Fn: Fn(I32),
+        const F32_N: usize,
+        F32: AsRef<uniform::F32Uniform<F32_N>>,
+        F32Fn: Fn(F32),
+        const F32X2_N: usize,
+        F32x2: AsRef<uniform::F32x2Uniform<F32X2_N>>,
+        F32x2Fn: Fn(F32x2),
+        const F32X3_N: usize,
+        F32x3: AsRef<uniform::F32x3Uniform<F32X3_N>>,
+        F32x3Fn: Fn(F32x3),
+        const F32X4_N: usize,
+        F32x4: AsRef<uniform::F32x4Uniform<F32X4_N>>,
+        F32x4Fn: Fn(F32x4),
     >(
         &self,
-        i32: I_Fn,
-        i32x2: Ix2_Fn,
-        i32x3: Ix3_Fn,
-        i32x4: Ix4_Fn,
-        f32: F_Fn,
-        f32x2: Fx2_Fn,
-        f32x3: Fx3_Fn,
-        f32x4: Fx4_Fn,
+        i32: I32Fn,
+        f32: F32Fn,
+        f32x2: F32x2Fn,
+        f32x3: F32x3Fn,
+        f32x4: F32x4Fn,
     );
+}
+
+struct SquareMaterial {
+    color: f32,
 }
 
 #[wasm_bindgen(start)]
 fn main() {
     panic::set_hook(Box::new(|info| eprintln(info.to_string().as_str())));
-
-    REFRESH_CANVAS_SIZE
-        .with(|refresh_canvas_size| WINDOW.add_event_listener("resize", refresh_canvas_size));
+    let closure = Closure::new(refresh_canvas_size);
+    WINDOW.add_event_listener("resize", &closure);
+    closure.forget();
     refresh_canvas_size();
 
     GL.with(|gl| {

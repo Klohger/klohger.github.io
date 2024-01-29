@@ -1,12 +1,5 @@
+use super::{println, WebGLProgram, WebGLShader, GL};
 use std::fmt::Debug;
-
-use crate::WebGLProgram;
-
-use super::println;
-
-use super::GL;
-
-use super::WebGLShader;
 
 #[derive(Debug)]
 pub enum ShaderProgramCreationError {

@@ -1,11 +1,11 @@
 * Implement vector classes
-  * constructor
-  * arithmetic
-  * scalar arithmetic
+  / constructor
+  / arithmetic
+  
 
 * Fully implement uniforms
   * vector class interopability
-  * Uniform types
+  / Uniform types
   X Material Trait
   * Camera
   * Transform
