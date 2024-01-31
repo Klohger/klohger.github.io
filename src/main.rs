@@ -4,13 +4,13 @@ use bevy::{
     core_pipeline::core_3d::Camera3dBundle,
     ecs::{
         component::Component,
-        event::{Event, EventReader, EventWriter},
+        entity::Entity,
         query::With,
-        schedule::States,
         system::{Commands, Query, Res, ResMut},
     },
     hierarchy::BuildChildren,
     input::{mouse::MouseButton, Input},
+    log::info,
     math::{Mat2, Quat, Vec2, Vec3, Vec4},
     pbr::{MaterialMeshBundle, MaterialPlugin},
     reflect::TypePath,
@@ -18,20 +18,13 @@ use bevy::{
         camera::{Camera, OrthographicProjection},
         mesh::{shape, Mesh},
         render_resource::AsBindGroup,
-        view::Visibility,
     },
+    time::Time,
     transform::{components::Transform, TransformBundle},
     window::{PrimaryWindow, Window, WindowPlugin},
     DefaultPlugins,
 };
-use std::{default, f32};
-
-#[derive(Component)]
-struct Player {
-    speed: f32,
-    rotation_speed: f32,
-    state: PlayerState,
-}
+use std::{f32, ops::AddAssign, time::Duration};
 
 #[derive(Component)]
 struct PrimaryCamera;
@@ -39,13 +32,26 @@ struct PrimaryCamera;
 #[derive(Component)]
 struct TestMouse;
 
-#[derive(Event, Default, Clone, Copy)]
-enum PlayerState {
-    #[default]
-    Idle,
-    GotoPos(Vec2),
-    GotoInteractable(()),
+pub struct WalkingAttribute {
+    pub initial: f32,
+    pub rampup: Option<f32>,
 }
+#[derive(Component)]
+struct WalkingAttributes {
+    walking_speed: WalkingAttribute,
+    rotation_speed: Option<WalkingAttribute>,
+}
+
+#[derive(Component)]
+struct Travelling {
+    time_spent: Duration,
+    destination: Destination,
+}
+enum Destination {
+    Position(Vec2),
+}
+#[derive(Component)]
+struct Player;
 
 fn main() {
     App::new()
@@ -61,7 +67,6 @@ fn main() {
             }),
             MaterialPlugin::<DefaultMaterial>::default(),
         ))
-        .add_event::<PlayerState>()
         .add_systems(
             Startup,
             |mut commands: Commands,
@@ -70,7 +75,7 @@ fn main() {
                 let mesh = meshes.add(
                     shape::Icosphere {
                         radius: 0.125,
-                        subdivisions: 4,
+                        subdivisions: 2,
                     }
                     .try_into()
                     .unwrap(),
@@ -93,13 +98,22 @@ fn main() {
                     },
                     TestMouse,
                 ));
+
                 commands
                     .spawn((
                         TransformBundle::default(),
-                        Player {
-                            speed: 0.125,
-                            rotation_speed: f32::consts::FRAC_PI_8,
-                            state: PlayerState::default(),
+                        Player,
+                        WalkingAttributes {
+                            walking_speed: WalkingAttribute {
+                                initial: 0.5,
+                                rampup: Some(2.0),
+                            },
+                            rotation_speed: None, /*
+                                                  Some(WalkingAttribute {
+                                                      initial: 0.001,
+                                                      rampup: None,
+                                                  }),
+                                                   */
                         },
                     ))
                     .with_children(|parent| {
@@ -189,9 +203,13 @@ fn main() {
             (
                 |q_primary_window: Query<&Window, With<PrimaryWindow>>,
                  q_primary_camera: Query<&Camera, With<PrimaryCamera>>,
-                 mut player_events: EventWriter<PlayerState>,
-                 mouse_buttons: Res<Input<MouseButton>>| {
-                    if mouse_buttons.just_pressed(MouseButton::Left) {
+                 mut q_player_destination: Query<
+                    (Entity, Option<&mut Travelling>),
+                    With<Player>,
+                >,
+                 mouse_buttons: Res<Input<MouseButton>>,
+                 mut commands: Commands| {
+                    if mouse_buttons.pressed(MouseButton::Left) {
                         let primary_window = q_primary_window.single();
                         if let Some(mut cursor_pos) = primary_window.cursor_position() {
                             cursor_pos -= Vec2::from((
@@ -204,49 +222,111 @@ fn main() {
 
                             cursor_pos =
                                 Mat2::from_angle(f32::consts::FRAC_PI_4).mul_vec2(cursor_pos);
+                            let cursor_pos = Destination::Position(cursor_pos);
 
-                            player_events.send(PlayerState::GotoPos(cursor_pos));
+                            let (player, player_destination) = q_player_destination.single_mut();
+                            match player_destination {
+                                Some(mut pos) => pos.destination = cursor_pos,
+                                None => {
+                                    commands.entity(player).insert(Travelling {
+                                        time_spent: Duration::ZERO,
+                                        destination: cursor_pos,
+                                    });
+                                }
+                            }
                         }
-                    }
-                },
-                |mut q_player: Query<&mut Player>, mut player_events: EventReader<PlayerState>| {
-                    if let Some(player_state) = player_events.read().last() {
-                        q_player.single_mut().state = *player_state;
                     }
                 },
             ),
         )
         .add_systems(
             Update,
-            (
-                |mut q_test_mouse: Query<(&mut Transform, &mut Visibility), With<TestMouse>>,
-                 mut player_events: EventReader<PlayerState>| {
-                    let (mut transform, mut visibility) = q_test_mouse.single_mut();
-                    for player_event in player_events.read() {
-                        match player_event {
-                            PlayerState::Idle => *visibility = Visibility::Hidden,
-                            PlayerState::GotoPos(pos) => {
-                                *visibility = Visibility::Visible;
-                                transform.translation = Vec3::from((pos.x, 0.0, pos.y));
+            |mut travellers: Query<(
+                Entity,
+                &mut Transform,
+                &WalkingAttributes,
+                &mut Travelling,
+            )>,
+             time: Res<Time>,
+             mut commands: Commands| {
+                travellers.iter_mut().for_each(
+                    |(traveller, mut transform, walking_attribute, mut travelling)| {
+                        let Travelling {
+                            time_spent,
+                            destination,
+                        } = &mut *travelling;
+
+                        match destination {
+                            Destination::Position(pos) => {
+                                let difference =
+                                    Vec2::new(transform.translation.x, transform.translation.z)
+                                        - *pos;
+
+                                let distance = difference.length();
+                                let step_size = match walking_attribute.walking_speed.rampup {
+                                    Some(rampup) => {
+                                        walking_attribute.walking_speed.initial
+                                            + rampup * time_spent.as_secs_f32()
+                                    }
+                                    None => walking_attribute.walking_speed.initial,
+                                } * time.delta().as_secs_f32();
+
+                                let mut difference_angle = f32::atan2(difference.x, difference.y);
+
+                                let rotation_step_size = walking_attribute
+                                    .rotation_speed
+                                    .as_ref()
+                                    .map(|rotation_speed| {
+                                        (match rotation_speed.rampup {
+                                            Some(rampup) => {
+                                                rotation_speed.initial
+                                                    + rampup * time_spent.as_secs_f32()
+                                            }
+                                            None => rotation_speed.initial,
+                                        }) * std::f32::consts::PI
+                                            * time.delta().as_secs_f32()
+                                    });
+
+                                if let Some(rotation_step_size) = rotation_step_size {
+                                    let player_rot =
+                                        transform.rotation.to_euler(bevy::math::EulerRot::XYZ).1;
+                                    if player_rot != difference_angle {
+                                        if (difference_angle) > std::f32::consts::PI {
+                                            difference_angle -= std::f32::consts::PI * 2.0;
+                                        } else if difference_angle < -std::f32::consts::PI {
+                                            difference_angle += std::f32::consts::PI * 2.0;
+                                        }
+                                    }
+                                } else {
+                                    transform.rotation = Quat::from_euler(
+                                        bevy::math::EulerRot::YXZ,
+                                        difference_angle,
+                                        0.0,
+                                        0.0,
+                                    );
+                                    let player_rot =
+                                        transform.rotation.to_euler(bevy::math::EulerRot::YXZ).0;
+                                    info!(
+                                        "{}, {difference_angle}, {player_rot}",
+                                        difference_angle == player_rot
+                                    );
+                                }
+                                if distance <= step_size {
+                                    commands.entity(traveller).remove::<Travelling>();
+                                    transform.translation = Vec3::new(pos.x, 0.0, pos.y);
+
+                                    return;
+                                }
+
+                                let walk_vector = transform.forward() * step_size;
+                                transform.translation += walk_vector;
+
+                                time_spent.add_assign(time.delta());
                             }
-                            PlayerState::GotoInteractable(_) => todo!(),
-                        }
-                    }
-                },
-                |mut q_player: Query<(&mut Transform, &mut Player)>| {
-                    let (transform, player) = q_player.single();
-
-                    match player.state {
-                        PlayerState::Idle => (),
-                        PlayerState::GotoPos(pos) => {
-                            let player_pos = Vec2::new(transform.translation.x, transform.translation.z);
-                            
-                        },
-                        PlayerState::GotoInteractable(_) => todo!(),
-                    }
-
-                },
-            ),
+                        };
+                    },
+                );
+            },
         )
         .run()
 }
