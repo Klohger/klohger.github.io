@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @typedef {{ref: WebGLTexture; loaded: boolean }} Texture
+ * @typedef { { tex?: WebGLTexture}} Texture
  */
 /**
  * @typedef {{program: WebGLProgram; attribLocations: {vertexPosition: number;}; uniforms: { counter: WebGLUniformLocation, texture: WebGLUniformLocation } }} ProgramInfo
@@ -131,30 +131,30 @@ function initShaderProgram(gl, vsSource, fsSource) {
 }
 
 /**
- *
  * @param {WebGL2RenderingContext} gl
  * @param {string} url
  * @param {GLenum} format
  * @param {GLenum} type
+ * @returns {Texture}
  */
 function createTexture(gl, url, format, type) {
-  let texture = {
-    ref: gl.createTexture(),
-    loaded: false,
-  };
-
+  /**
+   * @type {Texture}
+   */
+  let a = {};
   const image = new Image();
   image.onload = function (_ev) {
-    gl.bindTexture(gl.TEXTURE_2D, texture.ref);
+    let tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, format, format, type, image);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    texture.loaded = true;
+    a.tex = tex;
   };
   image.src = url;
-  return texture;
+  return a;
 }
 
 const vsSource = `#version 300 es
@@ -250,9 +250,9 @@ function main() {
 
     setPositionAttribute(gl, pos_buf, programInfo);
     gl.useProgram(programInfo.program);
-    if (image.loaded) {
+    if (image.tex) {
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, image.ref);
+      gl.bindTexture(gl.TEXTURE_2D, image.tex);
       gl.uniform1i(programInfo.uniforms.texture, 0);
       gl.uniform1ui(programInfo.uniforms.counter, counter);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
