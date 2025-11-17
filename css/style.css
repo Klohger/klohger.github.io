@@ -1,0 +1,65 @@
+.not-selectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body {
+	background-color: #0a0a0a;
+	color: white;
+	margin: 0;
+}
+
+.sans {
+	font-family: Comic Sans MS;
+}
+.impact {
+	font-family: Impact;
+}
+#header {
+	padding: 0.78125vw;
+	
+}
+
+#header tbody tr th {
+	padding: 0.78125vw;
+	outline: red 0.390625vw dotted;
+	font-weight: normal;	
+}
+
+.nm {
+	margin: 0;
+}
+
+#main-title {
+	font-size: 10vw;
+	width: fit-content;
+	background: linear-gradient(-90deg, #ff0000,#ff8000,#ffff00,#80ff00,#00ff00,#00ff80, #00ffff, #0080ff,#0000ff, #8000ff,#ff00ff,#ff0080,#ff0000,#ff8000,#ffff00,#80ff00,#00ff00);
+	animation: gradient 1s linear infinite;
+	animation-play-state: paused;
+	background-size: 400% 100%;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	text-transform: uppercase;
+	text-align: center;
+	margin: auto;
+}
+#main-title-two {
+	font-size: 25vw;
+}
+#music-button {
+	color: red;
+	font-size: 1.5625vw;
+}
+
+@keyframes gradient {
+	0% {
+		background-position: 0% 50%;
+	}
+	100% {
+		background-position: 100% 50%;
+	}
+}
