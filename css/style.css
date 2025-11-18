@@ -7,8 +7,8 @@
   user-select: none;
 }
 
-body {
-	background-color: #0a0a0a;
+html, body {
+	background-color: #040404;
 	color: white;
 	margin: 0;
 }
@@ -42,6 +42,7 @@ body {
 	animation-play-state: paused;
 	background-size: 400% 100%;
 	-webkit-background-clip: text;
+	background-clip: text;
 	-webkit-text-fill-color: transparent;
 	text-transform: uppercase;
 	text-align: center;
